@@ -52,5 +52,32 @@ public class UsuarioUseCase {
         usuarioGateway.eliminarUsuarioPorCc(cedula);
     }
 
+    public String login(String email, String password) {
+
+        if (email == null || password == null) {
+            throw new RuntimeException("Email y contraseña son obligatorios");
+        }
+
+        if (!email.contains("@")) {
+            throw new RuntimeException("Correo inválido");
+        }
+
+        Usuario usuario = usuarioGateway.buscarPorCorreo(email);
+
+        if (usuario == null || usuario.getCedula() == null) {
+            throw new RuntimeException("Usuario no encontrado");
+        }
+
+        if (usuario.getContrasena() == null) {
+            throw new RuntimeException("Error en datos del usuario");
+        }
+
+        if (!encrypterGateway.matches(password, usuario.getContrasena())) {
+            throw new RuntimeException("Contraseña incorrecta");
+        }
+
+        return "Login exitoso";
+    }
+
 
 }
