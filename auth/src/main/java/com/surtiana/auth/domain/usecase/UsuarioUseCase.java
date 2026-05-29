@@ -2,6 +2,7 @@ package com.surtiana.auth.domain.usecase;
 
 
 import com.surtiana.auth.domain.model.Usuario;
+import com.surtiana.auth.domain.model.gateway.EncrypterGateway;
 import com.surtiana.auth.domain.model.gateway.UsuarioGateway;
 import lombok.RequiredArgsConstructor;
 
@@ -11,6 +12,8 @@ import java.util.NoSuchElementException;
 public class UsuarioUseCase {
 
     private final UsuarioGateway usuarioGateway;
+    private final EncrypterGateway encrypterGateway;
+
 
     public Usuario guardarUsuario(Usuario usuario){
 
