@@ -1,8 +1,11 @@
+package com.surtiana.auth.domain.usecase;
+
 import com.surtiana.auth.domain.model.Usuario;
 import com.surtiana.auth.domain.model.gateway.EncrypterGateway;
 import com.surtiana.auth.domain.model.gateway.UsuarioGateway;
 import com.surtiana.auth.domain.usecase.UsuarioUseCase;
 import org.junit.jupiter.api.BeforeEach;
+import com.surtiana.auth.domain.model.gateway.JwtGateway;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -27,6 +30,9 @@ class UsuarioUseCaseTest {
     @Mock
     private EncrypterGateway encrypterGateway;
 
+    @Mock //
+    private JwtGateway jwtGateway;
+
     @InjectMocks
     private UsuarioUseCase usuarioUseCase;
 
@@ -40,6 +46,7 @@ class UsuarioUseCaseTest {
         usuarioValido.setCorreo("juan@email.com");
         usuarioValido.setContrasena("password123");
     }
+    @Test
     @DisplayName("guardarUsuario()")
     void guardarUsuario() {
 
@@ -388,7 +395,6 @@ class UsuarioUseCaseTest {
 
         // Arrange
         Usuario usuario = new Usuario();
-
         usuario.setCedula("123456789");
         usuario.setCorreo("johan@gmail.com");
         usuario.setContrasena("password-encriptado");
@@ -401,6 +407,10 @@ class UsuarioUseCaseTest {
                 usuario.getContrasena()
         )).thenReturn(true);
 
+        String tokenEsperado = "mi-token-jwt-falso-123";
+        when(jwtGateway.generarToken(any(Usuario.class)))
+                .thenReturn(tokenEsperado);
+
         // Act
         String resultado = usuarioUseCase.login(
                 usuario.getCorreo(),
@@ -409,7 +419,7 @@ class UsuarioUseCaseTest {
 
         // Assert
         assertEquals(
-                "Login exitoso",
+                tokenEsperado,
                 resultado
         );
 
@@ -418,6 +428,9 @@ class UsuarioUseCaseTest {
 
         verify(encrypterGateway)
                 .matches("123456", usuario.getContrasena());
+
+        verify(jwtGateway)
+                .generarToken(any(Usuario.class));
     }
 
     @Test
