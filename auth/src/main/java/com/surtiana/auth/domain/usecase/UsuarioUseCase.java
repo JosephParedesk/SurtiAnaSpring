@@ -3,6 +3,7 @@ package com.surtiana.auth.domain.usecase;
 
 import com.surtiana.auth.domain.model.Usuario;
 import com.surtiana.auth.domain.model.gateway.EncrypterGateway;
+import com.surtiana.auth.domain.model.gateway.JwtGateway;
 import com.surtiana.auth.domain.model.gateway.UsuarioGateway;
 import lombok.RequiredArgsConstructor;
 
@@ -13,6 +14,7 @@ public class UsuarioUseCase {
 
     private final UsuarioGateway usuarioGateway;
     private final EncrypterGateway encrypterGateway;
+    private final JwtGateway jwtGateway;
 
 
     public Usuario guardarUsuario(Usuario usuario){
@@ -79,7 +81,7 @@ public class UsuarioUseCase {
             throw new RuntimeException("Contraseña incorrecta");
         }
 
-        return "Login exitoso";
+        return jwtGateway.generarToken(usuario);
     }
 
 
