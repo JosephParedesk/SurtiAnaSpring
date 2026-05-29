@@ -4,6 +4,7 @@ package com.surtiana.auth.domain.usecase;
 import com.surtiana.auth.domain.model.Usuario;
 import com.surtiana.auth.domain.model.gateway.EncrypterGateway;
 import com.surtiana.auth.domain.model.gateway.JwtGateway;
+import com.surtiana.auth.domain.model.gateway.NotificationGateway;
 import com.surtiana.auth.domain.model.gateway.UsuarioGateway;
 import lombok.RequiredArgsConstructor;
 
@@ -15,6 +16,7 @@ public class UsuarioUseCase {
     private final UsuarioGateway usuarioGateway;
     private final EncrypterGateway encrypterGateway;
     private final JwtGateway jwtGateway;
+    private final NotificationGateway notificationGateway;
 
 
     public Usuario guardarUsuario(Usuario usuario){
@@ -31,6 +33,7 @@ public class UsuarioUseCase {
         usuario.setContrasena(passEncrypter);
 
         Usuario usuarioGuardado = usuarioGateway.guardarUsuario(usuario);
+        notificationGateway.enviarNotificacion(usuarioGuardado);
 
         return usuarioGuardado;
     }
