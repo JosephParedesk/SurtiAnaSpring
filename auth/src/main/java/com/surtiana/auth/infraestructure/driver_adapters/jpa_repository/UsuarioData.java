@@ -8,6 +8,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
@@ -27,4 +29,10 @@ public class UsuarioData {
     @Column(length = 10)
     private String telefono;
     private String rol;
+
+    @Column(nullable = true)
+    private String resetPasswordToken;
+
+    @Column(nullable = true)
+    private LocalDateTime resetPasswordTokenExpiry;
 }

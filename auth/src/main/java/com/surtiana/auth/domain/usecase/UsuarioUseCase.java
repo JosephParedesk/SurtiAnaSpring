@@ -8,7 +8,9 @@ import com.surtiana.auth.domain.model.gateway.NotificationGateway;
 import com.surtiana.auth.domain.model.gateway.UsuarioGateway;
 import lombok.RequiredArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.NoSuchElementException;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 public class UsuarioUseCase {
@@ -86,6 +88,51 @@ public class UsuarioUseCase {
 
         return jwtGateway.generarToken(usuario);
     }
+    public void forgotPassword(String email) {
 
+        if (email == null || email.trim().isEmpty()) {
+            throw new RuntimeException("El correo es obligatorio");
+        }
 
+        Usuario usuario = usuarioGateway.buscarPorCorreo(email);
+
+        if (usuario == null) {
+            throw new NoSuchElementException("No existe una cuenta con ese correo");
+        }
+
+        String token = UUID.randomUUID().toString();
+        usuario.setResetPasswordToken(token);
+        usuario.setResetPasswordTokenExpiry(LocalDateTime.now().plusMinutes(30));
+
+        usuarioGateway.guardarUsuario(usuario);
+        notificationGateway.enviarNotificacionRecuperacion(usuario);
+    }
+
+    public void resetPassword(String token, String nuevaContrasena) {
+
+        if (token == null || token.trim().isEmpty()) {
+            throw new RuntimeException("El token es obligatorio");
+        }
+
+        if (nuevaContrasena == null || nuevaContrasena.trim().isEmpty()) {
+            throw new RuntimeException("La nueva contraseña es obligatoria");
+        }
+
+        Usuario usuario = usuarioGateway.buscarPorResetToken(token);
+
+        if (usuario == null) {
+            throw new RuntimeException("Token inválido o expirado");
+        }
+
+        if (usuario.getResetPasswordTokenExpiry() == null ||
+                LocalDateTime.now().isAfter(usuario.getResetPasswordTokenExpiry())) {
+            throw new RuntimeException("El token ha expirado");
+        }
+
+        usuario.setContrasena(encrypterGateway.encrypt(nuevaContrasena));
+        usuario.setResetPasswordToken(null);
+        usuario.setResetPasswordTokenExpiry(null);
+
+        usuarioGateway.guardarUsuario(usuario);
+    }
 }

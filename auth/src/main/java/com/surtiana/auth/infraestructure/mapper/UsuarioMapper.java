@@ -15,20 +15,22 @@ public class UsuarioMapper {
                 usuario.getCorreo(),
                 usuario.getContrasena(),
                 usuario.getTelefono(),
-                usuario.getRol()
-
+                usuario.getRol(),
+                usuario.getResetPasswordToken(),
+                usuario.getResetPasswordTokenExpiry()
         );
-
     }
 
     public Usuario toUsuario(UsuarioData usuarioData){
-        return  new Usuario(
+        return new Usuario(
                 usuarioData.getCedula(),
                 usuarioData.getNombre(),
                 usuarioData.getCorreo(),
                 usuarioData.getContrasena(),
                 usuarioData.getTelefono(),
-                usuarioData.getRol()
+                usuarioData.getRol(),
+                usuarioData.getResetPasswordToken(),
+                usuarioData.getResetPasswordTokenExpiry()
         );
     }
 }

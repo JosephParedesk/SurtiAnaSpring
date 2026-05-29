@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -18,4 +20,6 @@ public class Usuario {
     private String contrasena;
     private String telefono;
     private String rol;
+    private String resetPasswordToken;
+    private LocalDateTime resetPasswordTokenExpiry;
 }

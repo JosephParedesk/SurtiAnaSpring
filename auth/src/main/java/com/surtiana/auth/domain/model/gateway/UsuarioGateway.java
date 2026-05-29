@@ -13,4 +13,7 @@ void eliminarUsuarioPorCc (String cedula);
 
 Usuario buscarPorCorreo(String correo);
 
+Usuario buscarPorResetToken(String token);
+
+
 }

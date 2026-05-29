@@ -4,13 +4,15 @@ package com.surtiana.auth.infraestructure.entry_points;
 import com.surtiana.auth.domain.model.Usuario;
 import com.surtiana.auth.domain.usecase.UsuarioUseCase;
 import com.surtiana.auth.infraestructure.driver_adapters.jpa_repository.UsuarioData;
+import com.surtiana.auth.infraestructure.driver_adapters.jpa_repository.dto.ForgotPasswordRequest;
+import com.surtiana.auth.infraestructure.driver_adapters.jpa_repository.dto.ResetPasswordRequest;
 import com.surtiana.auth.infraestructure.mapper.UsuarioMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@CrossOrigin(origins = "*")
+
 @RestController
 @RequestMapping("/api/surtiana/usuario")
 @RequiredArgsConstructor
@@ -50,6 +52,23 @@ public class UsuarioController {
         );
 
         return ResponseEntity.ok(usuarioValidado);
+    }
+
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequest request){
+
+        usuarioUseCase.forgotPassword(request.getEmail());
+
+        return ResponseEntity.ok("Se ha enviado un token de recuperación al correo registrado");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request){
+
+        usuarioUseCase.resetPassword(request.getToken(), request.getNuevaContrasena());
+
+        return ResponseEntity.ok("Contraseña actualizada exitosamente");
     }
 
 }
