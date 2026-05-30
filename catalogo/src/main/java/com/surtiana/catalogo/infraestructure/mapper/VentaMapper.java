@@ -5,13 +5,39 @@ import com.surtiana.catalogo.domain.model.DetalleVenta;
 import com.surtiana.catalogo.domain.model.Venta;
 import com.surtiana.catalogo.infraestructure.driver_adapters.jpa_repository.ventas.DetalleVentaData;
 import com.surtiana.catalogo.infraestructure.driver_adapters.jpa_repository.ventas.VentaData;
+import com.surtiana.catalogo.infraestructure.entry_points.VentaRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+
 @Component
 public class VentaMapper {
+
+    public Venta toVenta(VentaRequest request) {
+        if (request == null) return null;
+
+        List<DetalleVenta> detalles = null;
+        if (request.getDetalles() != null) {
+            detalles = request.getDetalles().stream()
+                    .map(d -> new DetalleVenta(
+                            null,
+                            d.getProductoId(),
+                            null,
+                            d.getCantidad(),
+                            null,
+                            null
+                    ))
+                    .collect(Collectors.toList());
+        }
+
+        Venta venta = new Venta();
+        venta.setClienteId(request.getClienteId());
+        venta.setDetalles(detalles);
+        return venta;
+    }
+
 
     public VentaData toVentaData(Venta venta) {
         VentaData ventaData = new VentaData();

@@ -5,6 +5,7 @@ import com.surtiana.catalogo.domain.model.DetalleVenta;
 import com.surtiana.catalogo.domain.model.Recibo;
 import com.surtiana.catalogo.domain.model.Venta;
 import com.surtiana.catalogo.domain.usecase.VentaUseCase;
+import com.surtiana.catalogo.infraestructure.mapper.VentaMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,44 +20,26 @@ import java.util.stream.Collectors;
 public class VentaController {
 
     private final VentaUseCase ventaUseCase;
+    private final VentaMapper ventaMapper;
 
     @PostMapping("/realizar")
     public ResponseEntity<Recibo> realizarVenta(@RequestBody VentaRequest request) {
-        Venta venta = new Venta();
-        venta.setClienteId(request.getClienteId());
-
-        List<DetalleVenta> detalles = request.getDetalles().stream()
-                .map(d -> {
-                    DetalleVenta detalle = new DetalleVenta();
-                    detalle.setProductoId(d.getProductoId());
-                    detalle.setCantidad(d.getCantidad());
-                    return detalle;
-                })
-                .collect(Collectors.toList());
-
-        venta.setDetalles(detalles);
-
-        Recibo recibo = ventaUseCase.realizarVenta(venta);
+        Recibo recibo = ventaUseCase.realizarVenta(ventaMapper.toVenta(request));
         return ResponseEntity.ok(recibo);
     }
-
 
     @GetMapping("/recibo/{ventaId}")
     public ResponseEntity<Recibo> obtenerReciboPorVenta(@PathVariable String ventaId) {
-        Recibo recibo = ventaUseCase.obtenerReciboPorVenta(ventaId);
-        return ResponseEntity.ok(recibo);
+        return ResponseEntity.ok(ventaUseCase.obtenerReciboPorVenta(ventaId));
     }
-
 
     @GetMapping("/recibo/detalle/{reciboId}")
     public ResponseEntity<Recibo> obtenerReciboPorId(@PathVariable String reciboId) {
-        Recibo recibo = ventaUseCase.obtenerReciboPorId(reciboId);
-        return ResponseEntity.ok(recibo);
+        return ResponseEntity.ok(ventaUseCase.obtenerReciboPorId(reciboId));
     }
 
     @GetMapping("/cliente/{clienteId}")
     public ResponseEntity<List<Venta>> obtenerVentasPorCliente(@PathVariable String clienteId) {
-        List<Venta> ventas = ventaUseCase.obtenerVentasPorCliente(clienteId);
-        return ResponseEntity.ok(ventas);
+        return ResponseEntity.ok(ventaUseCase.obtenerVentasPorCliente(clienteId));
     }
 }
