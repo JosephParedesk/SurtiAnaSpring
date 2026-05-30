@@ -43,4 +43,10 @@ public class UsuarioDataGatewayImpl implements UsuarioGateway {
         return usuarioDataJpaRepository.findByCorreo(correo).map(usuarioMapper::toUsuario).orElse(null);
     }
 
+    @Override
+    public Usuario buscarPorResetToken(String token) {
+        return usuarioDataJpaRepository.findByResetPasswordToken(token).map(usuarioMapper::toUsuario).orElse(null);
+    }
+
+
 }

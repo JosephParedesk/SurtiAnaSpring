@@ -64,7 +64,8 @@ public class NotificationGatewayImpl implements NotificationGateway {
             log.info("Notificación de recuperación enviada a: {}", usuario.getCorreo());
 
         } catch (Exception e) {
-            log.error("Error enviando notificación de recuperación: {}", e.getMessage());
+            log.error("Error enviando notificación de recuperación a {}", usuario.getCorreo(), e);
+            throw new RuntimeException("No fue posible enviar el correo de recuperación");
         }
     }
 }

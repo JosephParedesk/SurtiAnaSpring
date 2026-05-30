@@ -9,4 +9,6 @@ public interface UsuarioDataJpaRepository extends JpaRepository<UsuarioData, Str
 
     Optional<UsuarioData> findByCorreo(String correo);
 
+    Optional<UsuarioData> findByResetPasswordToken(String resetPasswordToken);
+
 }
