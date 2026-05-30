@@ -28,11 +28,11 @@ public class VentaUseCase {
     public Recibo realizarVenta(Venta venta) {
 
         if (venta.getClienteId() == null || venta.getClienteId().isBlank()) {
-            throw new RuntimeException("El clienteId es obligatorio");
+            throw new IllegalArgumentException("El clienteId es obligatorio");
         }
 
         if (venta.getDetalles() == null || venta.getDetalles().isEmpty()) {
-            throw new RuntimeException("La venta debe tener al menos un producto");
+            throw new IllegalArgumentException("La venta debe tener al menos un producto");
         }
 
         List<DetalleVenta> detallesCalculados = new ArrayList<>();
@@ -41,11 +41,11 @@ public class VentaUseCase {
         for (DetalleVenta detalle : venta.getDetalles()) {
 
             if (detalle.getProductoId() == null || detalle.getProductoId().isBlank()) {
-                throw new RuntimeException("El productoId en el detalle es obligatorio");
+                throw new IllegalArgumentException("El productoId en el detalle es obligatorio");
             }
 
             if (detalle.getCantidad() == null || detalle.getCantidad() <= 0) {
-                throw new RuntimeException("La cantidad debe ser mayor a cero para el producto: " + detalle.getProductoId());
+                throw new IllegalArgumentException("La cantidad debe ser mayor a cero para el producto: " + detalle.getProductoId());
             }
 
             Producto producto = productoGateway.buscarProductoPorId(detalle.getProductoId());
