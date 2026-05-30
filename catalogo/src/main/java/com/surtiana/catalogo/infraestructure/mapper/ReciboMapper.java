@@ -11,11 +11,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
 public class ReciboMapper {
 
-    private final VentaMapper ventaMapper;
-    private final VentaDataJpaRepository ventaDataJpaRepository;
 
     public ReciboData toReciboData(Recibo recibo) {
         ReciboData reciboData = new ReciboData();
@@ -29,15 +26,9 @@ public class ReciboMapper {
         return reciboData;
     }
 
-    public Recibo toRecibo(ReciboData reciboData) {
-        if (reciboData == null) return null;
 
-        // Obtener los detalles desde la venta asociada
-        List<DetalleVenta> detalles = ventaDataJpaRepository
-                .findById(reciboData.getVentaId())
-                .map(ventaMapper::toVenta)
-                .map(v -> v.getDetalles())
-                .orElse(null);
+    public Recibo toRecibo(ReciboData reciboData, List<DetalleVenta> detalles) {
+        if (reciboData == null) return null;
 
         return new Recibo(
                 reciboData.getReciboId(),
