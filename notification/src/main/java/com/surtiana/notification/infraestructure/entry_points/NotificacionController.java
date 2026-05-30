@@ -23,15 +23,11 @@ public class NotificacionController {
     private final MapperNotificacion mapperNotificacion;
 
     @PostMapping("/send")
-    public ResponseEntity<String> enviarNotificacion(@Valid @RequestBody EventoNotificacionDTO eventoDTO) {
-        log.info("Evento recibido: tipo={}, email={}", eventoDTO.getTipo(), eventoDTO.getEmail());
-        try {
-            emailGateway.enviarEmail(mapperNotificacion.toNotificacion(eventoDTO));
-            return ResponseEntity.ok("Notificación enviada exitosamente a " + eventoDTO.getEmail());
-        } catch (Exception e) {
-            log.error("Error procesando notificación: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al procesar la notificación");
-        }
+    public ResponseEntity<String> enviarNotificacion(
+            @Valid @RequestBody EventoNotificacionDTO eventoDTO) {
+
+        emailGateway.enviarEmail(mapperNotificacion.toNotificacion(eventoDTO));
+
+        return ResponseEntity.ok("Notificación enviada exitosamente a " + eventoDTO.getEmail());
     }
 }
