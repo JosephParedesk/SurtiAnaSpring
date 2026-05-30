@@ -2,6 +2,7 @@ package com.surtiana.auth.infraestructure.entry_points;
 
 
 import com.surtiana.auth.domain.model.Usuario;
+import com.surtiana.auth.domain.model.gateway.JwtGateway;
 import com.surtiana.auth.domain.usecase.UsuarioUseCase;
 import com.surtiana.auth.infraestructure.driver_adapters.jpa_repository.UsuarioData;
 import com.surtiana.auth.infraestructure.driver_adapters.jpa_repository.dto.ForgotPasswordRequest;
@@ -20,6 +21,7 @@ public class UsuarioController {
 
     private final UsuarioUseCase usuarioUseCase;
     private final UsuarioMapper usuarioMapper;
+    private final JwtGateway jwtGateway;
 
     @PostMapping("/save")
     public ResponseEntity<Usuario> saveUsauraio(@RequestBody UsuarioData usuarioData){
@@ -38,10 +40,13 @@ public class UsuarioController {
     }
 
     @DeleteMapping("/eliminar/{cedula}")
-    public ResponseEntity<Void> eliminarUsuario(@PathVariable String cedula){
-
+    public ResponseEntity<Void> eliminarUsuario(@PathVariable String cedula, @RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.replace("Bearer ", "");
+        String rol = jwtGateway.extraerRol(token);
+        if (!"admin".equalsIgnoreCase(rol)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         usuarioUseCase.eliminarUsuarioPorCc(cedula);
-
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 

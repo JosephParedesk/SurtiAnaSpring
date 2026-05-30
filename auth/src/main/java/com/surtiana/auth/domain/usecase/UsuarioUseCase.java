@@ -30,7 +30,9 @@ public class UsuarioUseCase {
 
             throw new RuntimeException("Faltan campos obligatorios o están vacíos");
         }
-
+        if (usuario.getRol() == null || usuario.getRol().trim().isEmpty()) {
+            usuario.setRol("user");
+        }
         String passEncrypter = encrypterGateway.encrypt(usuario.getContrasena());
         usuario.setContrasena(passEncrypter);
 

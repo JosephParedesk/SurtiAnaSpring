@@ -2,6 +2,7 @@ package com.surtiana.auth.infraestructure.security;
 
 import com.surtiana.auth.domain.model.Usuario;
 import com.surtiana.auth.domain.model.gateway.JwtGateway;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,5 +32,20 @@ public class JwtGatewayImpl implements JwtGateway {
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(key)
                 .compact();
+    }
+
+    @Override
+    public String extraerRol(String token) {
+        SecretKey key = Keys.hmacShaKeyFor(
+                secret.getBytes(StandardCharsets.UTF_8)
+        );
+
+        Claims claims = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        return claims.get("rol", String.class);
     }
 }
