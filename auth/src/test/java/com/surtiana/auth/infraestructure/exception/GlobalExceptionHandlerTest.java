@@ -1,87 +1,128 @@
 package com.surtiana.auth.infraestructure.exception;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpInputMessage;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
+import java.util.Map;
 import java.util.NoSuchElementException;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-@DisplayName("GlobalExceptionHandler - Pruebas Unitarias")
 class GlobalExceptionHandlerTest {
 
-    private MockMvc mockMvc;
+    private GlobalExceptionHandler exceptionHandler;
 
     @BeforeEach
     void setUp() {
-        // Configuramos MockMvc usando solo el controlador falso y nuestro manejador global
-        mockMvc = MockMvcBuilders.standaloneSetup(new TestController())
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
+        exceptionHandler = new GlobalExceptionHandler();
     }
 
     @Test
-    @DisplayName("Debe retornar 400 Bad Request cuando el JSON es inválido")
-    void debeManejarHttpMessageNotReadableException() throws Exception {
-        mockMvc.perform(get("/test/bad-json"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("Formato inválido en los datos enviados"));
+    void handleBadJson_RetornaBadRequest() {
+        // Arrange
+
+        // Act
+        ResponseEntity<Map<String, String>> response = exceptionHandler.handleBadJson();
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Formato inválido en los datos enviados", response.getBody().get("error"));
     }
 
     @Test
-    @DisplayName("Debe retornar 404 Not Found cuando no existe el elemento")
-    void debeManejarNoSuchElementException() throws Exception {
-        mockMvc.perform(get("/test/not-found"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("Elemento no encontrado"));
+    void handleNotFound_RetornaNotFound() {
+        // Arrange
+        NoSuchElementException ex = new NoSuchElementException("Usuario no encontrado");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = exceptionHandler.handleNotFound(ex);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals("Usuario no encontrado", response.getBody().get("error"));
     }
 
     @Test
-    @DisplayName("Debe retornar 401 Unauthorized en caso de falla de seguridad")
-    void debeManejarSecurityException() throws Exception {
-        mockMvc.perform(get("/test/unauthorized"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("No tienes permisos de acceso"));
+    void handleNoAutorizado_RetornaUnauthorized() {
+        // Arrange
+        SecurityException ex = new SecurityException("No autorizado");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = exceptionHandler.handleNoAutorizado(ex);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals("No autorizado", response.getBody().get("error"));
     }
 
     @Test
-    @DisplayName("Debe retornar 400 Bad Request para cualquier otra RuntimeException")
-    void debeManejarRuntimeException() throws Exception {
-        mockMvc.perform(get("/test/runtime"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("Ocurrió un error inesperado"));
+    void handleTokenExpirado_RetornaUnauthorized() {
+        // Arrange
+
+        // Act
+        ResponseEntity<Map<String, String>> response = exceptionHandler.handleTokenExpirado();
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals("El token ha expirado", response.getBody().get("error"));
     }
 
+    @Test
+    void handleTokenMalformado_RetornaUnauthorized() {
+        // Arrange
 
-    @RestController
-    static class TestController {
+        // Act
+        ResponseEntity<Map<String, String>> response = exceptionHandler.handleTokenMalformado();
 
-        @GetMapping("/test/bad-json")
-        void throwBadJson() {
-            throw new HttpMessageNotReadableException("Error leyendo JSON", (HttpInputMessage) null);
-        }
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals("El token tiene un formato inválido", response.getBody().get("error"));
+    }
 
-        @GetMapping("/test/not-found")
-        void throwNotFound() {
-            throw new NoSuchElementException("Elemento no encontrado");
-        }
+    @Test
+    void handleFirmaInvalida_RetornaUnauthorized() {
+        // Arrange
 
-        @GetMapping("/test/unauthorized")
-        void throwUnauthorized() {
-            throw new SecurityException("No tienes permisos de acceso");
-        }
+        // Act
+        ResponseEntity<Map<String, String>> response = exceptionHandler.handleFirmaInvalida();
 
-        @GetMapping("/test/runtime")
-        void throwRuntime() {
-            throw new RuntimeException("Ocurrió un error inesperado");
-        }
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals("La firma del token no es válida", response.getBody().get("error"));
+    }
+
+    @Test
+    void handleAccesoDenegado_RetornaForbidden() {
+        // Arrange
+
+        // Act
+        ResponseEntity<Map<String, String>> response = exceptionHandler.handleAccesoDenegado();
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals("No tienes permisos para realizar esta acción", response.getBody().get("error"));
+    }
+
+    @Test
+    void handleRuntime_RetornaBadRequest() {
+        // Arrange
+        RuntimeException ex = new RuntimeException("Error en el servidor");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = exceptionHandler.handleRuntime(ex);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Error en el servidor", response.getBody().get("error"));
     }
 }

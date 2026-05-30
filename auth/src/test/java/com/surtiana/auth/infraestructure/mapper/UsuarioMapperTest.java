@@ -3,72 +3,59 @@ package com.surtiana.auth.infraestructure.mapper;
 import com.surtiana.auth.domain.model.Usuario;
 import com.surtiana.auth.infraestructure.driver_adapters.jpa_repository.UsuarioData;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
-@DisplayName("UsuarioMapper - Pruebas Unitarias")
 class UsuarioMapperTest {
 
     private UsuarioMapper usuarioMapper;
 
     @BeforeEach
     void setUp() {
-        // Al ser una clase simple, la instanciamos directamente sin mocks
         usuarioMapper = new UsuarioMapper();
     }
 
     @Test
-    @DisplayName("Debe mapear correctamente un objeto de Dominio a la Entidad de Base de Datos")
-    void debeMapearAUsuarioData() {
+    void tousuarioData_ShouldMapUsuarioToUsuarioData() {
         // Arrange
-        Usuario usuario = new Usuario(
-                "123456789",
-                "Johan Surtiana",
-                "johan@gmail.com",
-                "password-seguro",
-                "3101234567",
-                "ADMIN"
-        );
+        LocalDateTime fecha = LocalDateTime.now();
+        Usuario usuario = new Usuario("123456", "Juan", "juan@mail.com", "password123", "3001234567", "ADMIN", "tokenXYZ", fecha);
 
         // Act
         UsuarioData resultado = usuarioMapper.tousuarioData(usuario);
 
         // Assert
-        assertNotNull(resultado, "El objeto mapeado no debería ser nulo");
-        assertEquals(usuario.getCedula(), resultado.getCedula());
-        assertEquals(usuario.getNombre(), resultado.getNombre());
-        assertEquals(usuario.getCorreo(), resultado.getCorreo());
-        assertEquals(usuario.getContrasena(), resultado.getContrasena());
-        assertEquals(usuario.getTelefono(), resultado.getTelefono());
-        assertEquals(usuario.getRol(), resultado.getRol());
+        assertNotNull(resultado);
+        assertEquals("123456", resultado.getCedula());
+        assertEquals("Juan", resultado.getNombre());
+        assertEquals("juan@mail.com", resultado.getCorreo());
+        assertEquals("password123", resultado.getContrasena());
+        assertEquals("3001234567", resultado.getTelefono());
+        assertEquals("ADMIN", resultado.getRol());
+        assertEquals("tokenXYZ", resultado.getResetPasswordToken());
+        assertEquals(fecha, resultado.getResetPasswordTokenExpiry());
     }
 
     @Test
-    @DisplayName("Debe mapear correctamente un objeto de Base de Datos al Modelo de Dominio")
-    void debeMapearAUsuario() {
+    void toUsuario_ShouldMapUsuarioDataToUsuario() {
         // Arrange
-        UsuarioData usuarioData = new UsuarioData(
-                "987654321",
-                "Carlos Perez",
-                "carlos@gmail.com",
-                "password-encriptado",
-                "3207654321",
-                "USER"
-        );
+        LocalDateTime fecha = LocalDateTime.now();
+        UsuarioData usuarioData = new UsuarioData("123456", "Juan", "juan@mail.com", "password123", "3001234567", "ADMIN", "tokenXYZ", fecha);
 
         // Act
         Usuario resultado = usuarioMapper.toUsuario(usuarioData);
 
         // Assert
-        assertNotNull(resultado, "El objeto mapeado no debería ser nulo");
-        assertEquals(usuarioData.getCedula(), resultado.getCedula());
-        assertEquals(usuarioData.getNombre(), resultado.getNombre());
-        assertEquals(usuarioData.getCorreo(), resultado.getCorreo());
-        assertEquals(usuarioData.getContrasena(), resultado.getContrasena());
-        assertEquals(usuarioData.getTelefono(), resultado.getTelefono());
-        assertEquals(usuarioData.getRol(), resultado.getRol());
+        assertNotNull(resultado);
+        assertEquals("123456", resultado.getCedula());
+        assertEquals("Juan", resultado.getNombre());
+        assertEquals("juan@mail.com", resultado.getCorreo());
+        assertEquals("password123", resultado.getContrasena());
+        assertEquals("3001234567", resultado.getTelefono());
+        assertEquals("ADMIN", resultado.getRol());
+        assertEquals("tokenXYZ", resultado.getResetPasswordToken());
+        assertEquals(fecha, resultado.getResetPasswordTokenExpiry());
     }
 }

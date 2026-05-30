@@ -2,154 +2,144 @@ package com.surtiana.auth.infraestructure.driver_adapters.jpa_repository;
 
 import com.surtiana.auth.domain.model.Usuario;
 import com.surtiana.auth.infraestructure.mapper.UsuarioMapper;
-
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class UsuarioDataGatewayImplTest {
 
-    @Mock
+    private UsuarioDataGatewayImpl usuarioDataGateway;
     private UsuarioDataJpaRepository usuarioDataJpaRepository;
-
-    @Mock
     private UsuarioMapper usuarioMapper;
 
-    @InjectMocks
-    private UsuarioDataGatewayImpl usuarioDataGateway;
+    @BeforeEach
+    void setUp() {
+        usuarioDataJpaRepository = mock(UsuarioDataJpaRepository.class);
+        usuarioMapper = mock(UsuarioMapper.class);
+        usuarioDataGateway = new UsuarioDataGatewayImpl(usuarioDataJpaRepository, usuarioMapper);
+    }
 
     @Test
-    void deberiaGuardarUsuario() {
-
+    void guardarUsuario_Exitoso_RetornaUsuario() {
         // Arrange
         Usuario usuario = new Usuario();
         UsuarioData usuarioData = new UsuarioData();
-
-        when(usuarioMapper.tousuarioData(usuario))
-                .thenReturn(usuarioData);
-
-        when(usuarioDataJpaRepository.save(usuarioData))
-                .thenReturn(usuarioData);
-
-        when(usuarioMapper.toUsuario(usuarioData))
-                .thenReturn(usuario);
+        when(usuarioMapper.tousuarioData(usuario)).thenReturn(usuarioData);
+        when(usuarioDataJpaRepository.save(usuarioData)).thenReturn(usuarioData);
+        when(usuarioMapper.toUsuario(usuarioData)).thenReturn(usuario);
 
         // Act
         Usuario resultado = usuarioDataGateway.guardarUsuario(usuario);
 
         // Assert
         assertNotNull(resultado);
-
-        verify(usuarioMapper).tousuarioData(usuario);
-        verify(usuarioDataJpaRepository).save(usuarioData);
-        verify(usuarioMapper).toUsuario(usuarioData);
+        assertEquals(usuario, resultado);
+        verify(usuarioDataJpaRepository, times(1)).save(usuarioData);
     }
 
     @Test
-    void deberiaBuscarUsuarioPorCc() {
-
+    void buscarUsuarioPorCc_Existe_RetornaUsuario() {
         // Arrange
-        String cedula = "123";
-
+        String cedula = "123456";
         UsuarioData usuarioData = new UsuarioData();
         Usuario usuario = new Usuario();
-
-        when(usuarioDataJpaRepository.findById(cedula))
-                .thenReturn(Optional.of(usuarioData));
-
-        when(usuarioMapper.toUsuario(usuarioData))
-                .thenReturn(usuario);
+        when(usuarioDataJpaRepository.findById(cedula)).thenReturn(Optional.of(usuarioData));
+        when(usuarioMapper.toUsuario(usuarioData)).thenReturn(usuario);
 
         // Act
         Usuario resultado = usuarioDataGateway.buscarUsuarioPorCc(cedula);
 
         // Assert
         assertNotNull(resultado);
-
-        verify(usuarioDataJpaRepository).findById(cedula);
-        verify(usuarioMapper).toUsuario(usuarioData);
+        assertEquals(usuario, resultado);
     }
 
     @Test
-    void deberiaRetornarNullCuandoNoExisteCedula() {
-
+    void buscarUsuarioPorCc_NoExiste_RetornaNull() {
         // Arrange
-        String cedula = "999";
-
-        when(usuarioDataJpaRepository.findById(cedula))
-                .thenReturn(Optional.empty());
+        String cedula = "123456";
+        when(usuarioDataJpaRepository.findById(cedula)).thenReturn(Optional.empty());
 
         // Act
         Usuario resultado = usuarioDataGateway.buscarUsuarioPorCc(cedula);
 
         // Assert
         assertNull(resultado);
-
-        verify(usuarioDataJpaRepository).findById(cedula);
+        verify(usuarioMapper, never()).toUsuario(any());
     }
 
     @Test
-    void deberiaEliminarUsuarioPorCc() {
-
+    void eliminarUsuarioPorCc_Exitoso_Elimina() {
         // Arrange
-        String cedula = "123";
+        String cedula = "123456";
+        doNothing().when(usuarioDataJpaRepository).deleteById(cedula);
 
-        // Act
-        usuarioDataGateway.eliminarUsuarioPorCc(cedula);
-
-        // Assert
-        verify(usuarioDataJpaRepository).deleteById(cedula);
+        // Act & Assert
+        assertDoesNotThrow(() -> usuarioDataGateway.eliminarUsuarioPorCc(cedula));
+        verify(usuarioDataJpaRepository, times(1)).deleteById(cedula);
     }
 
     @Test
-    void deberiaBuscarPorCorreo() {
-
+    void buscarPorCorreo_Existe_RetornaUsuario() {
         // Arrange
-        String correo = "johan@gmail.com";
-
+        String correo = "juan@mail.com";
         UsuarioData usuarioData = new UsuarioData();
         Usuario usuario = new Usuario();
-
-        when(usuarioDataJpaRepository.findByCorreo(correo))
-                .thenReturn(Optional.of(usuarioData));
-
-        when(usuarioMapper.toUsuario(usuarioData))
-                .thenReturn(usuario);
+        when(usuarioDataJpaRepository.findByCorreo(correo)).thenReturn(Optional.of(usuarioData));
+        when(usuarioMapper.toUsuario(usuarioData)).thenReturn(usuario);
 
         // Act
         Usuario resultado = usuarioDataGateway.buscarPorCorreo(correo);
 
         // Assert
         assertNotNull(resultado);
-
-        verify(usuarioDataJpaRepository).findByCorreo(correo);
-        verify(usuarioMapper).toUsuario(usuarioData);
+        assertEquals(usuario, resultado);
     }
 
     @Test
-    void deberiaRetornarNullCuandoCorreoNoExiste() {
-
+    void buscarPorCorreo_NoExiste_RetornaNull() {
         // Arrange
-        String correo = "noexiste@gmail.com";
-
-        when(usuarioDataJpaRepository.findByCorreo(correo))
-                .thenReturn(Optional.empty());
+        String correo = "juan@mail.com";
+        when(usuarioDataJpaRepository.findByCorreo(correo)).thenReturn(Optional.empty());
 
         // Act
         Usuario resultado = usuarioDataGateway.buscarPorCorreo(correo);
 
         // Assert
         assertNull(resultado);
+    }
 
-        verify(usuarioDataJpaRepository).findByCorreo(correo);
+    @Test
+    void buscarPorResetToken_Existe_RetornaUsuario() {
+        // Arrange
+        String token = "tokenXYZ";
+        UsuarioData usuarioData = new UsuarioData();
+        Usuario usuario = new Usuario();
+        when(usuarioDataJpaRepository.findByResetPasswordToken(token)).thenReturn(Optional.of(usuarioData));
+        when(usuarioMapper.toUsuario(usuarioData)).thenReturn(usuario);
+
+        // Act
+        Usuario resultado = usuarioDataGateway.buscarPorResetToken(token);
+
+        // Assert
+        assertNotNull(resultado);
+        assertEquals(usuario, resultado);
+    }
+
+    @Test
+    void buscarPorResetToken_NoExiste_RetornaNull() {
+        // Arrange
+        String token = "tokenXYZ";
+        when(usuarioDataJpaRepository.findByResetPasswordToken(token)).thenReturn(Optional.empty());
+
+        // Act
+        Usuario resultado = usuarioDataGateway.buscarPorResetToken(token);
+
+        // Assert
+        assertNull(resultado);
     }
 }

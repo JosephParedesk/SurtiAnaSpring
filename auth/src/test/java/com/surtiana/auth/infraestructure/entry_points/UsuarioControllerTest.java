@@ -1,130 +1,152 @@
 package com.surtiana.auth.infraestructure.entry_points;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.surtiana.auth.domain.model.Usuario;
+import com.surtiana.auth.domain.model.gateway.JwtGateway;
 import com.surtiana.auth.domain.usecase.UsuarioUseCase;
 import com.surtiana.auth.infraestructure.driver_adapters.jpa_repository.UsuarioData;
+import com.surtiana.auth.infraestructure.driver_adapters.jpa_repository.dto.ForgotPasswordRequest;
+import com.surtiana.auth.infraestructure.driver_adapters.jpa_repository.dto.ResetPasswordRequest;
 import com.surtiana.auth.infraestructure.mapper.UsuarioMapper;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import java.time.LocalDateTime;
 
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-@ExtendWith(MockitoExtension.class)
 class UsuarioControllerTest {
 
-    private MockMvc mockMvc;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-    @Mock
-    private UsuarioUseCase usuarioUseCase;
-
-    @Mock
-    private UsuarioMapper usuarioMapper;
-
-    @InjectMocks
     private UsuarioController usuarioController;
+    private UsuarioUseCase usuarioUseCase;
+    private UsuarioMapper usuarioMapper;
+    private JwtGateway jwtGateway;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders
-                .standaloneSetup(usuarioController)
-                .build();
+        usuarioUseCase = mock(UsuarioUseCase.class);
+        usuarioMapper = mock(UsuarioMapper.class);
+        jwtGateway = mock(JwtGateway.class);
+        usuarioController = new UsuarioController(usuarioUseCase, usuarioMapper, jwtGateway);
     }
 
     @Test
-    void deberiaGuardarUsuario() throws Exception {
+    void saveUsauraio_Exitoso_RetornaUsuario() {
+        // Arrange
+        LocalDateTime fecha = LocalDateTime.now();
+        UsuarioData usuarioData = new UsuarioData("123456", "Juan", "juan@mail.com", "password123", "3001234567", "ADMIN", "tokenXYZ", fecha);
+        Usuario usuario = new Usuario("123456", "Juan", "juan@mail.com", "password123", "3001234567", "ADMIN", "tokenXYZ", fecha);
+        when(usuarioMapper.toUsuario(usuarioData)).thenReturn(usuario);
+        when(usuarioUseCase.guardarUsuario(usuario)).thenReturn(usuario);
 
-        UsuarioData usuarioData = new UsuarioData();
-        usuarioData.setCedula("123");
-        usuarioData.setCorreo("johan@gmail.com");
-        usuarioData.setContrasena("123456");
+        // Act
+        ResponseEntity<Usuario> response = usuarioController.saveUsauraio(usuarioData);
 
-        Usuario usuario = new Usuario();
-        usuario.setCedula("123");
-        usuario.setCorreo("johan@gmail.com");
-
-        when(usuarioMapper.toUsuario(usuarioData))
-                .thenReturn(usuario);
-
-        when(usuarioUseCase.guardarUsuario(usuario))
-                .thenReturn(usuario);
-
-        mockMvc.perform(post("/api/surtiana/usuario/save")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(usuarioData)))
-                .andExpect(status().isOk());
-
-        verify(usuarioMapper).toUsuario(any(UsuarioData.class));
-        verify(usuarioUseCase).guardarUsuario(usuario);
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(usuario, response.getBody());
     }
 
     @Test
-    void deberiaBuscarUsuarioPorCedula() throws Exception {
+    void buscarUsuario_Exitoso_RetornaUsuario() {
+        // Arrange
+        String cedula = "123456";
+        Usuario usuario = new Usuario("123456", "Juan", "juan@mail.com", "password123", "3001234567", "ADMIN", "tokenXYZ", null);
+        when(usuarioUseCase.buscarUsuarioPorCc(cedula)).thenReturn(usuario);
 
-        Usuario usuario = new Usuario();
-        usuario.setCedula("123");
-        usuario.setCorreo("johan@gmail.com");
+        // Act
+        ResponseEntity<Usuario> response = usuarioController.buscarUsuario(cedula);
 
-        when(usuarioUseCase.buscarUsuarioPorCc("123"))
-                .thenReturn(usuario);
-
-        mockMvc.perform(get("/api/surtiana/usuario/buscar/123"))
-                .andExpect(status().isOk());
-
-        verify(usuarioUseCase).buscarUsuarioPorCc("123");
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(usuario, response.getBody());
     }
 
     @Test
-    void deberiaEliminarUsuario() throws Exception {
+    void eliminarUsuario_NoAdmin_RetornaForbidden() {
+        // Arrange
+        String cedula = "123456";
+        String authHeader = "Bearer token-usuario";
+        when(jwtGateway.extraerRol("token-usuario")).thenReturn("USER");
 
-        mockMvc.perform(delete("/api/surtiana/usuario/eliminar/123"))
-                .andExpect(status().isNoContent());
+        // Act
+        ResponseEntity<Void> response = usuarioController.eliminarUsuario(cedula, authHeader);
 
-        verify(usuarioUseCase).eliminarUsuarioPorCc("123");
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        verify(usuarioUseCase, never()).eliminarUsuarioPorCc(anyString());
     }
 
     @Test
-    void deberiaHacerLogin() throws Exception {
+    void eliminarUsuario_Admin_RetornaNoContent() {
+        // Arrange
+        String cedula = "123456";
+        String authHeader = "Bearer token-admin";
+        when(jwtGateway.extraerRol("token-admin")).thenReturn("admin");
+        doNothing().when(usuarioUseCase).eliminarUsuarioPorCc(cedula);
 
-        UsuarioData usuarioData = new UsuarioData();
-        usuarioData.setCorreo("johan@gmail.com");
-        usuarioData.setContrasena("123456");
+        // Act
+        ResponseEntity<Void> response = usuarioController.eliminarUsuario(cedula, authHeader);
 
-        when(usuarioUseCase.login(
-                usuarioData.getCorreo(),
-                usuarioData.getContrasena()
-        )).thenReturn("TOKEN_VALIDO");
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        verify(jwtGateway, times(1)).extraerRol("token-admin");
+        verify(usuarioUseCase, times(1)).eliminarUsuarioPorCc(cedula);
+    }
 
-        mockMvc.perform(post("/api/surtiana/usuario/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(usuarioData)))
-                .andExpect(status().isOk())
-                .andExpect(content().string("TOKEN_VALIDO"));
+    @Test
+    void login_Exitoso_RetornaToken() {
+        // Arrange
+        UsuarioData usuarioData = mock(UsuarioData.class);
+        when(usuarioData.getCorreo()).thenReturn("juan@mail.com");
+        when(usuarioData.getContrasena()).thenReturn("password123");
+        when(usuarioUseCase.login("juan@mail.com", "password123")).thenReturn("token-jwt-exitoso");
 
-        verify(usuarioUseCase).login(
-                usuarioData.getCorreo(),
-                usuarioData.getContrasena()
-        );
+        // Act
+        ResponseEntity<String> response = usuarioController.login(usuarioData);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("token-jwt-exitoso", response.getBody());
+    }
+
+    @Test
+    void forgotPassword_Exitoso_RetornaMensaje() {
+        // Arrange
+        ForgotPasswordRequest request = mock(ForgotPasswordRequest.class);
+        when(request.getEmail()).thenReturn("juan@mail.com");
+        doNothing().when(usuarioUseCase).forgotPassword("juan@mail.com");
+
+        // Act
+        ResponseEntity<String> response = usuarioController.forgotPassword(request);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("Se ha enviado un token de recuperación al correo registrado", response.getBody());
+    }
+
+    @Test
+    void resetPassword_Exitoso_RetornaMensaje() {
+        // Arrange
+        ResetPasswordRequest request = mock(ResetPasswordRequest.class);
+        when(request.getToken()).thenReturn("tokenXYZ");
+        when(request.getNuevaContrasena()).thenReturn("nuevaPassword123");
+        doNothing().when(usuarioUseCase).resetPassword("tokenXYZ", "nuevaPassword123");
+
+        // Act
+        ResponseEntity<String> response = usuarioController.resetPassword(request);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("Contraseña actualizada exitosamente", response.getBody());
     }
 }

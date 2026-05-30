@@ -2,622 +2,290 @@ package com.surtiana.auth.domain.usecase;
 
 import com.surtiana.auth.domain.model.Usuario;
 import com.surtiana.auth.domain.model.gateway.EncrypterGateway;
-import com.surtiana.auth.domain.model.gateway.UsuarioGateway;
-import com.surtiana.auth.domain.usecase.UsuarioUseCase;
-import org.junit.jupiter.api.BeforeEach;
 import com.surtiana.auth.domain.model.gateway.JwtGateway;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
+import com.surtiana.auth.domain.model.gateway.NotificationGateway;
+import com.surtiana.auth.domain.model.gateway.UsuarioGateway;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
-@DisplayName("UsuarioUseCase - Pruebas unitarias")
 class UsuarioUseCaseTest {
 
-    @Mock
-    private UsuarioGateway usuarioGateway;
-
-    @Mock
-    private EncrypterGateway encrypterGateway;
-
-    @Mock //
-    private JwtGateway jwtGateway;
-
-    @InjectMocks
     private UsuarioUseCase usuarioUseCase;
-
-    private Usuario usuarioValido;
+    private UsuarioGateway usuarioGateway;
+    private EncrypterGateway encrypterGateway;
+    private JwtGateway jwtGateway;
+    private NotificationGateway notificationGateway;
 
     @BeforeEach
     void setUp() {
-        usuarioValido = new Usuario();
-        usuarioValido.setCedula("123456");
-        usuarioValido.setNombre("Juan Pérez");
-        usuarioValido.setCorreo("juan@email.com");
-        usuarioValido.setContrasena("password123");
+        usuarioGateway = mock(UsuarioGateway.class);
+        encrypterGateway = mock(EncrypterGateway.class);
+        jwtGateway = mock(JwtGateway.class);
+        notificationGateway = mock(NotificationGateway.class);
+        usuarioUseCase = new UsuarioUseCase(usuarioGateway, encrypterGateway, jwtGateway, notificationGateway);
     }
+
     @Test
-    @DisplayName("guardarUsuario()")
-    void guardarUsuario() {
-
+    void guardarUsuario_CamposVacios_LanzaException() {
         // Arrange
-        Usuario usuario = new Usuario();
+        Usuario usuario = new Usuario("", "Juan", "juan@mail.com", "123", "300", "user", null, null);
 
-        usuario.setCedula("123456");
-        usuario.setNombre("Johan");
-        usuario.setCorreo("johantest@gmail.com");
-        usuario.setContrasena("123456");
-        usuario.setTelefono("3001234567");
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> usuarioUseCase.guardarUsuario(usuario));
+    }
 
-        when(encrypterGateway.encrypt(usuario.getContrasena()))
-                .thenReturn("encrypted-Password");
-
-
-        Usuario usuarioGuardado = new Usuario();
-
-        usuarioGuardado.setCedula("123456");
-        usuarioGuardado.setNombre("Johan");
-        usuarioGuardado.setCorreo("johantest@gmail.com");
-        usuarioGuardado.setContrasena("encrypted-Password");
-        usuarioGuardado.setTelefono("3001234567");
-
-        when(usuarioGateway.guardarUsuario(any(Usuario.class)))
-                .thenReturn(usuarioGuardado);
-
+    @Test
+    void guardarUsuario_SinRol_AsignaUserYGuarda() {
+        // Arrange
+        Usuario usuario = new Usuario("123456", "Juan", "juan@mail.com", "password", "300", null, null, null);
+        when(encrypterGateway.encrypt("password")).thenReturn("enc-pass");
+        when(usuarioGateway.guardarUsuario(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
-
         Usuario resultado = usuarioUseCase.guardarUsuario(usuario);
 
         // Assert
-
-        assertEquals("johantest@gmail.com",
-                resultado.getCorreo());
-
-        assertEquals("encrypted-Password",
-                resultado.getContrasena());
-
-        verify(encrypterGateway).encrypt("123456");
-        verify(usuarioGateway).guardarUsuario(any(Usuario.class));
-
-
+        assertNotNull(resultado);
+        assertEquals("user", resultado.getRol());
+        verify(notificationGateway, times(1)).enviarNotificacion(resultado);
     }
 
     @Test
-    void ExcepcionCuandoCedulaEsNull() {
-
+    void guardarUsuario_Exitoso_GuardaYNotifica() {
         // Arrange
-        Usuario usuario = new Usuario();
-
-        usuario.setCedula(null);
-        usuario.setNombre("Johan");
-        usuario.setCorreo("johan@gmail.com");
-        usuario.setContrasena("123456");
+        Usuario usuario = new Usuario("123456", "Juan", "juan@mail.com", "password", "300", "admin", null, null);
+        when(encrypterGateway.encrypt("password")).thenReturn("enc-pass");
+        when(usuarioGateway.guardarUsuario(usuario)).thenReturn(usuario);
 
         // Act
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> usuarioUseCase.guardarUsuario(usuario)
-        );
-
-        // Assert
-        assertEquals(
-                "Faltan campos obligatorios o están vacíos",
-                exception.getMessage()
-        );
-    }
-
-    @Test
-    void ExcepcionCuandoLaCedulaEstaVacia() {
-
-        // Arrange
-        Usuario usuario = new Usuario();
-
-        usuario.setCedula("");
-        usuario.setNombre("Johan");
-        usuario.setCorreo("johantest@gmail.com");
-        usuario.setContrasena("123456");
-
-        // Act
-        RuntimeException exception = assertThrows(RuntimeException.class, () ->
-                usuarioUseCase.guardarUsuario(usuario)
-        );
-
-        // Assert
-        assertEquals("Faltan campos obligatorios o están vacíos",
-                exception.getMessage());
-    }
-    @Test
-    void debeGuardarUsuarioConContrasenaEncriptada() {
-
-        Usuario usuario = new Usuario();
-        usuario.setCedula("123");
-        usuario.setNombre("Joseph");
-        usuario.setCorreo("joseph@gmail.com");
-        usuario.setContrasena("123456");
-
-        when(encrypterGateway.encrypt("123456"))
-                .thenReturn("PASS_ENCRIPTADA");
-
-        when(usuarioGateway.guardarUsuario(any(Usuario.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
         Usuario resultado = usuarioUseCase.guardarUsuario(usuario);
 
-        assertEquals("PASS_ENCRIPTADA", resultado.getContrasena());
-
-        verify(encrypterGateway).encrypt("123456");
-
-        verify(usuarioGateway).guardarUsuario(any(Usuario.class));
+        // Assert
+        assertNotNull(resultado);
+        assertEquals("admin", resultado.getRol());
+        verify(notificationGateway, times(1)).enviarNotificacion(usuario);
     }
-    @Test
-    void ExcepcionCuandoNombreEstaVacio() {
 
+    @Test
+    void buscarUsuarioPorCc_Exitoso_RetornaUsuario() {
         // Arrange
+        String cedula = "123456";
         Usuario usuario = new Usuario();
-
-        usuario.setCedula("123");
-        usuario.setNombre("");
-        usuario.setCorreo("johan@gmail.com");
-        usuario.setContrasena("123456");
+        when(usuarioGateway.buscarUsuarioPorCc(cedula)).thenReturn(usuario);
 
         // Act
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> usuarioUseCase.guardarUsuario(usuario)
-        );
+        Usuario resultado = usuarioUseCase.buscarUsuarioPorCc(cedula);
 
         // Assert
-        assertEquals(
-                "Faltan campos obligatorios o están vacíos",
-                exception.getMessage()
-        );
+        assertNotNull(resultado);
+        assertEquals(usuario, resultado);
     }
 
     @Test
-    void ExcepcionCuandoElNombreEsNull() {
-
+    void buscarUsuarioPorCc_NoExiste_LanzaException() {
         // Arrange
+        String cedula = "123456";
+        when(usuarioGateway.buscarUsuarioPorCc(cedula)).thenReturn(null);
+
+        // Act & Assert
+        assertThrows(NoSuchElementException.class, () -> usuarioUseCase.buscarUsuarioPorCc(cedula));
+    }
+
+    @Test
+    void eliminarUsuarioPorCc_Exitoso_Elimina() {
+        // Arrange
+        String cedula = "123456";
         Usuario usuario = new Usuario();
-
-        usuario.setCedula("123456789");
-        usuario.setNombre(null);
-        usuario.setCorreo("johantest@gmail.com");
-        usuario.setContrasena("123456");
+        when(usuarioGateway.buscarUsuarioPorCc(cedula)).thenReturn(usuario);
+        doNothing().when(usuarioGateway).eliminarUsuarioPorCc(cedula);
 
         // Act
-        RuntimeException exception = assertThrows(RuntimeException.class, () ->
-                usuarioUseCase.guardarUsuario(usuario)
-        );
+        usuarioUseCase.eliminarUsuarioPorCc(cedula);
 
         // Assert
-        assertEquals("Faltan campos obligatorios o están vacíos",
-                exception.getMessage());
+        verify(usuarioGateway, times(1)).eliminarUsuarioPorCc(cedula);
     }
 
     @Test
-    void ExcepcionCuandoElCorreoEsNull() {
-
+    void eliminarUsuarioPorCc_NoExiste_LanzaException() {
         // Arrange
-        Usuario usuario = new Usuario();
+        String cedula = "123456";
+        when(usuarioGateway.buscarUsuarioPorCc(cedula)).thenReturn(null);
 
-        usuario.setCedula("123456789");
-        usuario.setNombre("Johan");
-        usuario.setCorreo(null);
-        usuario.setContrasena("123456");
-
-        // Act
-        RuntimeException exception = assertThrows(RuntimeException.class, () ->
-                usuarioUseCase.guardarUsuario(usuario)
-        );
-
-        // Assert
-        assertEquals("Faltan campos obligatorios o están vacíos",
-                exception.getMessage());
+        // Act & Assert
+        assertThrows(NoSuchElementException.class, () -> usuarioUseCase.eliminarUsuarioPorCc(cedula));
     }
 
     @Test
-    void ExcepcionCuandoCorreoEstaVacio() {
-
-        // Arrange
-        Usuario usuario = new Usuario();
-
-        usuario.setCedula("123");
-        usuario.setNombre("Johan");
-        usuario.setCorreo("");
-        usuario.setContrasena("123456");
-
-        // Act
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> usuarioUseCase.guardarUsuario(usuario)
-        );
-
-        // Assert
-        assertEquals(
-                "Faltan campos obligatorios o están vacíos",
-                exception.getMessage()
-        );
+    void login_ArgumentosNulos_LanzaException() {
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> usuarioUseCase.login(null, "password"));
     }
 
     @Test
-    void ExcepcionCuandoContrasenaEsNull() {
-
-        // Arrange
-        Usuario usuario = new Usuario();
-
-        usuario.setCedula("123");
-        usuario.setNombre("Johan");
-        usuario.setCorreo("johan@gmail.com");
-        usuario.setContrasena(null);
-
-        // Act
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> usuarioUseCase.guardarUsuario(usuario)
-        );
-
-        // Assert
-        assertEquals(
-                "Faltan campos obligatorios o están vacíos",
-                exception.getMessage()
-        );
+    void login_CorreoInvalido_LanzaException() {
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> usuarioUseCase.login("correoInvalido", "password"));
     }
 
     @Test
-    void ExcepcionCuandoLaContrasenaEstaVacia() {
-
+    void login_UsuarioNoExiste_LanzaException() {
         // Arrange
-        Usuario usuario = new Usuario();
+        String email = "juan@mail.com";
+        when(usuarioGateway.buscarPorCorreo(email)).thenReturn(null);
 
-        usuario.setCedula("123456789");
-        usuario.setNombre("Johan");
-        usuario.setCorreo("johantest@gmail.com");
-        usuario.setContrasena("");
-
-        // Act
-        RuntimeException exception = assertThrows(RuntimeException.class, () ->
-                usuarioUseCase.guardarUsuario(usuario)
-        );
-
-        // Assert
-        assertEquals("Faltan campos obligatorios o están vacíos",
-                exception.getMessage());
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> usuarioUseCase.login(email, "password"));
     }
 
     @Test
-    void buscarUsuarioPorCc() {
-
+    void login_UsuarioSinCedula_LanzaException() {
         // Arrange
-        Usuario usuario = new Usuario();
+        String email = "juan@mail.com";
+        Usuario usuario = new Usuario(null, "Juan", email, "pass", "300", "user", null, null);
+        when(usuarioGateway.buscarPorCorreo(email)).thenReturn(usuario);
 
-        usuario.setCedula("123456789");
-        usuario.setNombre("Johan");
-        usuario.setCorreo("johan@gmail.com");
-
-        when(usuarioGateway.buscarUsuarioPorCc("123456789"))
-                .thenReturn(usuario);
-
-        // Act
-        Usuario resultado = usuarioUseCase.buscarUsuarioPorCc("123456789");
-
-        // Assert
-        assertEquals("123456789", resultado.getCedula());
-        assertEquals("Johan", resultado.getNombre());
-        assertEquals("johan@gmail.com", resultado.getCorreo());
-
-        verify(usuarioGateway).buscarUsuarioPorCc("123456789");
-
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> usuarioUseCase.login(email, "password"));
     }
 
     @Test
-    void buscarUsuarioPorCcExcepcionCuandoNoExiste() {
-
+    void login_ContrasenaNulaEnBd_LanzaException() {
         // Arrange
-        when(usuarioGateway.buscarUsuarioPorCc("123456789"))
-                .thenReturn(null);
+        String email = "juan@mail.com";
+        Usuario usuario = new Usuario("123456", "Juan", email, null, "300", "user", null, null);
+        when(usuarioGateway.buscarPorCorreo(email)).thenReturn(usuario);
 
-        // Act
-        NoSuchElementException exception = assertThrows(
-                NoSuchElementException.class,
-                () -> usuarioUseCase.buscarUsuarioPorCc("123456789")
-        );
-
-        // Assert
-        assertEquals("Usuario no encontrado",
-                exception.getMessage());
-
-        verify(usuarioGateway).buscarUsuarioPorCc("123456789");
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> usuarioUseCase.login(email, "password"));
     }
 
     @Test
-    void eliminarUsuario() {
-
+    void login_ContrasenaIncorrecta_LanzaException() {
         // Arrange
-        Usuario usuario = new Usuario();
+        String email = "juan@mail.com";
+        Usuario usuario = new Usuario("123456", "Juan", email, "enc-pass", "300", "user", null, null);
+        when(usuarioGateway.buscarPorCorreo(email)).thenReturn(usuario);
+        when(encrypterGateway.matches("password", "enc-pass")).thenReturn(false);
 
-        usuario.setCedula("123456789");
-        usuario.setNombre("Johan");
-
-        when(usuarioGateway.buscarUsuarioPorCc(usuario.getCedula()))
-                .thenReturn(usuario);
-
-        // Act
-        usuarioUseCase.eliminarUsuarioPorCc(usuario.getCedula());
-
-        // Assert
-        verify(usuarioGateway).buscarUsuarioPorCc(usuario.getCedula());
-
-        verify(usuarioGateway)
-                .eliminarUsuarioPorCc(usuario.getCedula());
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> usuarioUseCase.login(email, "password"));
     }
 
     @Test
-    void eliminarUsuarioExcepcionCuandoNoExiste() {
-
+    void login_Exitoso_RetornaToken() {
         // Arrange
-
-        Usuario usuario = new Usuario();
-
-        usuario.setCedula("123456789");
-
-        when(usuarioGateway.buscarUsuarioPorCc(usuario.getCedula()))
-                .thenReturn(null);
+        String email = "juan@mail.com";
+        Usuario usuario = new Usuario("123456", "Juan", email, "enc-pass", "300", "user", null, null);
+        when(usuarioGateway.buscarPorCorreo(email)).thenReturn(usuario);
+        when(encrypterGateway.matches("password", "enc-pass")).thenReturn(true);
+        when(jwtGateway.generarToken(usuario)).thenReturn("jwt-token");
 
         // Act
-        NoSuchElementException exception = assertThrows(
-                NoSuchElementException.class,
-                () -> usuarioUseCase.eliminarUsuarioPorCc(usuario.getCedula())
-        );
+        String token = usuarioUseCase.login(email, "password");
 
         // Assert
-        assertEquals(
-                "Usuario no encontrado",
-                exception.getMessage()
-        );
-
-        verify(usuarioGateway)
-                .buscarUsuarioPorCc(usuario.getCedula());
+        assertEquals("jwt-token", token);
     }
 
     @Test
-    void login() {
-
-        // Arrange
-        Usuario usuario = new Usuario();
-        usuario.setCedula("123456789");
-        usuario.setCorreo("johan@gmail.com");
-        usuario.setContrasena("password-encriptado");
-
-        when(usuarioGateway.buscarPorCorreo(usuario.getCorreo()))
-                .thenReturn(usuario);
-
-        when(encrypterGateway.matches(
-                "123456",
-                usuario.getContrasena()
-        )).thenReturn(true);
-
-        String tokenEsperado = "mi-token-jwt-falso-123";
-        when(jwtGateway.generarToken(any(Usuario.class)))
-                .thenReturn(tokenEsperado);
-
-        // Act
-        String resultado = usuarioUseCase.login(
-                usuario.getCorreo(),
-                "123456"
-        );
-
-        // Assert
-        assertEquals(
-                tokenEsperado,
-                resultado
-        );
-
-        verify(usuarioGateway)
-                .buscarPorCorreo(usuario.getCorreo());
-
-        verify(encrypterGateway)
-                .matches("123456", usuario.getContrasena());
-
-        verify(jwtGateway)
-                .generarToken(any(Usuario.class));
+    void forgotPassword_EmailVacio_LanzaException() {
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> usuarioUseCase.forgotPassword(" "));
     }
 
     @Test
-    void logiExcepcionCuandoCorreoEsNull() {
-
+    void forgotPassword_UsuarioNoExiste_LanzaException() {
         // Arrange
-        String password = "123456";
+        String email = "juan@mail.com";
+        when(usuarioGateway.buscarPorCorreo(email)).thenReturn(null);
 
-        // Act
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> usuarioUseCase.login(null, password)
-        );
-
-        // Assert
-        assertEquals(
-                "Email y contraseña son obligatorios",
-                exception.getMessage()
-        );
+        // Act & Assert
+        assertThrows(NoSuchElementException.class, () -> usuarioUseCase.forgotPassword(email));
     }
 
     @Test
-    void logiExcepcionCuandoContraEsNull() {
-
+    void forgotPassword_Exitoso_EnviaNotificacion() {
         // Arrange
-        String email = "johantest@gmail.com";
+        String email = "juan@mail.com";
+        Usuario usuario = new Usuario("123456", "Juan", email, "pass", "300", "user", null, null);
+        when(usuarioGateway.buscarPorCorreo(email)).thenReturn(usuario);
 
         // Act
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> usuarioUseCase.login(email, null)
-        );
+        usuarioUseCase.forgotPassword(email);
 
         // Assert
-        assertEquals(
-                "Email y contraseña son obligatorios",
-                exception.getMessage()
-        );
+        assertNotNull(usuario.getResetPasswordToken());
+        assertNotNull(usuario.getResetPasswordTokenExpiry());
+        verify(usuarioGateway, times(1)).guardarUsuario(usuario);
+        verify(notificationGateway, times(1)).enviarNotificacionRecuperacion(usuario);
     }
 
     @Test
-    void loginExcepcionCorreoEsInvalido() {
-
-        // Arrange
-        String email = "johangmail.com";
-        String password = "123456";
-
-        // Act
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> usuarioUseCase.login(email, password)
-        );
-
-        // Assert
-        assertEquals(
-                "Correo inválido",
-                exception.getMessage()
-        );
+    void resetPassword_TokenVacio_LanzaException() {
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> usuarioUseCase.resetPassword("", "nuevaPass"));
     }
 
     @Test
-    void logiExcepcionCuandoUsuarioEsNull() {
-
-        // Arrange
-        String email = "johan@gmail.com";
-        String password = "123456";
-
-        when(usuarioGateway.buscarPorCorreo(email))
-                .thenReturn(null);
-
-        // Act
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> usuarioUseCase.login(email, password)
-        );
-
-        // Assert
-        assertEquals(
-                "Usuario no encontrado",
-                exception.getMessage()
-        );
-
-        verify(usuarioGateway)
-                .buscarPorCorreo(email);
-    }
-
-
-    @Test
-    void loginExcepcionCedulaDelUsuarioEsNull() {
-
-        // Arrange
-        Usuario usuario = new Usuario();
-
-        usuario.setCedula(null);
-        usuario.setCorreo("johan@gmail.com");
-        usuario.setContrasena("password-encriptado");
-
-        when(usuarioGateway.buscarPorCorreo(usuario.getCorreo()))
-                .thenReturn(usuario);
-
-        // Act
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> usuarioUseCase.login(
-                        usuario.getCorreo(),
-                        "123456"
-                )
-        );
-
-        // Assert
-        assertEquals(
-                "Usuario no encontrado",
-                exception.getMessage()
-        );
-
-        verify(usuarioGateway)
-                .buscarPorCorreo(usuario.getCorreo());
+    void resetPassword_ContrasenaVacia_LanzaException() {
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> usuarioUseCase.resetPassword("token", " "));
     }
 
     @Test
-    void loginContrasenaDelUsuarioEsNull() {
-
+    void resetPassword_TokenInvalido_LanzaException() {
         // Arrange
-        Usuario usuario = new Usuario();
+        String token = "tokenXYZ";
+        when(usuarioGateway.buscarPorResetToken(token)).thenReturn(null);
 
-        usuario.setCedula("123456789");
-        usuario.setCorreo("johan@gmail.com");
-        usuario.setContrasena(null);
-
-        when(usuarioGateway.buscarPorCorreo(usuario.getCorreo()))
-                .thenReturn(usuario);
-
-        // Act
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> usuarioUseCase.login(
-                        usuario.getCorreo(),
-                        "123456"
-                )
-        );
-
-        // Assert
-        assertEquals(
-                "Error en datos del usuario",
-                exception.getMessage()
-        );
-
-        verify(usuarioGateway)
-                .buscarPorCorreo(usuario.getCorreo());
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> usuarioUseCase.resetPassword(token, "nuevaPass"));
     }
+
     @Test
-    void loginContrasenaEsIncorrecta() {
-
+    void resetPassword_ExpiracionNula_LanzaException() {
         // Arrange
-        Usuario usuario = new Usuario();
+        String token = "tokenXYZ";
+        Usuario usuario = new Usuario("123456", "Juan", "j@m.com", "pass", "300", "user", token, null);
+        when(usuarioGateway.buscarPorResetToken(token)).thenReturn(usuario);
 
-        usuario.setCedula("123456789");
-        usuario.setCorreo("johan@gmail.com");
-        usuario.setContrasena("password-encriptada");
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> usuarioUseCase.resetPassword(token, "nuevaPass"));
+    }
 
-        when(usuarioGateway.buscarPorCorreo("johan@gmail.com"))
-                .thenReturn(usuario);
+    @Test
+    void resetPassword_TokenExpirado_LanzaException() {
+        // Arrange
+        String token = "tokenXYZ";
+        Usuario usuario = new Usuario("123456", "Juan", "j@m.com", "pass", "300", "user", token, LocalDateTime.now().minusMinutes(5));
+        when(usuarioGateway.buscarPorResetToken(token)).thenReturn(usuario);
 
-        when(encrypterGateway.matches(
-                "123456",
-                "password-encriptada"
-        )).thenReturn(false);
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> usuarioUseCase.resetPassword(token, "nuevaPass"));
+    }
+
+    @Test
+    void resetPassword_Exitoso_ActualizaContrasena() {
+        // Arrange
+        String token = "tokenXYZ";
+        Usuario usuario = new Usuario("123456", "Juan", "j@m.com", "pass", "300", "user", token, LocalDateTime.now().plusMinutes(5));
+        when(usuarioGateway.buscarPorResetToken(token)).thenReturn(usuario);
+        when(encrypterGateway.encrypt("nuevaPass")).thenReturn("enc-nuevaPass");
 
         // Act
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> usuarioUseCase.login(
-                        "johan@gmail.com",
-                        "123456"
-                )
-        );
+        usuarioUseCase.resetPassword(token, "nuevaPass");
 
         // Assert
-        assertEquals(
-                "Contraseña incorrecta",
-                exception.getMessage()
-        );
-
-        verify(usuarioGateway)
-                .buscarPorCorreo("johan@gmail.com");
-
-        verify(encrypterGateway)
-                .matches("123456", "password-encriptada");
+        assertEquals("enc-nuevaPass", usuario.getContrasena());
+        assertNull(usuario.getResetPasswordToken());
+        assertNull(usuario.getResetPasswordTokenExpiry());
+        verify(usuarioGateway, times(1)).guardarUsuario(usuario);
     }
 }
