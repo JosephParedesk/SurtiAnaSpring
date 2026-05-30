@@ -123,6 +123,17 @@ public class VentaUseCase {
     }
 
     public List<Venta> obtenerVentasPorCliente(String clienteId) {
-        return ventaGateway.buscarVentasPorCliente(clienteId);
+
+        if (clienteId == null || clienteId.isBlank()) {
+            throw new IllegalArgumentException("El clienteId es obligatorio");
+        }
+
+        List<Venta> ventas = ventaGateway.buscarVentasPorCliente(clienteId);
+
+        if (ventas == null || ventas.isEmpty()) {
+            throw new NoSuchElementException("No se encontraron ventas para el cliente: " + clienteId);
+        }
+
+        return ventas;
     }
 }
